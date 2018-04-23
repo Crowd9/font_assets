@@ -8,11 +8,21 @@ module FontAssets
       config.font_assets.origin ||= "*"
       config.font_assets.options ||= { allow_ssl: true }
 
-      insert_target = if app.config.serve_static_files
-        'ActionDispatch::Static'
-      else
-        'Rack::Runtime'
-      end
+      serve_static =
+        if app.config.respond_to?(:public_file_server)
+          # Rails >= 5
+          app.config.public_file_server.enabled
+        else
+          # Rails < 5
+          app.config.serve_static_files
+        end
+
+      insert_target =
+        if serve_static
+          ActionDispatch::Static
+        else
+          Rack::Runtime
+        end
 
       app.middleware.insert_before insert_target, FontAssets::Middleware, config.font_assets.origin, config.font_assets.options
     end
